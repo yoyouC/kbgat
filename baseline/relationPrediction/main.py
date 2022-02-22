@@ -254,9 +254,9 @@ def train_gat(args):
             epoch, sum(epoch_loss) / len(epoch_loss), time.time() - start_time))
         epoch_losses.append(sum(epoch_loss) / len(epoch_loss))
 
-        save_model(model_gat, args.data, epoch,
-                   args.output_folder)
-
+        if epoch % 100 == 0:
+            save_model(model_gat, args.data, epoch,
+                    args.output_folder + "conv/")
 
 def train_conv(args):
 
