@@ -256,7 +256,7 @@ def train_gat(args):
 
 
     save_model(model_gat, args.data, args.epochs_gat - 1,
-            args.output_folder + "conv/")
+            args.output_folder + "gat/")
 
 def train_conv(args):
 
@@ -276,7 +276,7 @@ def train_conv(args):
         model_gat.cuda()
 
     model_gat.load_state_dict(torch.load(
-        '{}/trained_{}.pth'.format(args.output_folder, args.epochs_gat - 1)))
+        '{}gat/trained_{}.pth'.format(args.output_folder, args.epochs_gat - 1)))
     model_conv.final_entity_embeddings = model_gat.final_entity_embeddings
     model_conv.final_relation_embeddings = model_gat.final_relation_embeddings
 
