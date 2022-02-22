@@ -346,8 +346,9 @@ def train_conv(args):
             epoch, sum(epoch_loss) / len(epoch_loss), time.time() - start_time))
         epoch_losses.append(sum(epoch_loss) / len(epoch_loss))
 
-        save_model(model_conv, args.data, epoch,
-                   args.output_folder + "conv/")
+        if epoch % 100 == 0:
+            save_model(model_conv, args.data, epoch,
+                    args.output_folder + "conv/")
 
 
 def evaluate_conv(args, unique_entities):
