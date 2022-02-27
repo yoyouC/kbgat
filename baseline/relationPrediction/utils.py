@@ -1,17 +1,8 @@
 import torch
 # from torchviz import make_dot, make_dot_from_trace
-from models import SpKBGATModified, SpKBGATConvOnly
-from layers import ConvKB
-from torch.autograd import Variable
-import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from copy import deepcopy
-
-from preprocess import read_entity_from_id, read_relation_from_id, init_embeddings, build_data
-from create_batch import Corpus
-
 import random
 from random import shuffle
 
@@ -124,7 +115,7 @@ class BatchCategoryDataset():
         self.count = 0
         self.curr_dataset = None
     
-    def _filter_by_category(triplets, category):
+    def _filter_by_category(self, triplets, category):
         ret = []
         for t in triplets:
             _, r, _ = t
@@ -142,7 +133,7 @@ class BatchCategoryDataset():
         
         if not self.curr_dataset:
             self.reset()
-            raise StopIteration
+            return None
         
         self.count += 1
         
