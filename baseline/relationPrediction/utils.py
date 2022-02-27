@@ -86,6 +86,12 @@ def plot_grad_flow_low(named_parameters, parameters):
     plt.close()
 
 
+def transe_score(h, r, t):
+    return h + r - t
+
+def distmult_score(h, r, t):
+    return - h * r * t
+
 class BatchCategoryDataset():
 
     class CategoryDataset():
@@ -114,6 +120,7 @@ class BatchCategoryDataset():
         
         self.count = 0
         self.curr_dataset = None
+        self.dataset_count = 0
     
     def _filter_by_category(self, triplets, category):
         ret = []
@@ -160,3 +167,13 @@ class BatchCategoryDataset():
     def reset(self):
         for dataset in self.cate_datasets:
             dataset.reset()
+    
+    def max_next(self):
+        i = self.dataset_count
+
+        if i == len(self.cate_datasets):
+            self.dataset_count = 0
+            return None
+        else:
+            self.dataset_count += 1
+            return self.cate_datasets[i].data

@@ -20,6 +20,8 @@ import sys
 import logging
 import time
 import pickle
+from config import catagories
+from utils import transe_score, distmult_score
 
 # %%
 # %%from torchviz import make_dot, make_dot_from_trace
@@ -133,7 +135,15 @@ print("Initial entity dimensions {} , relation dimensions {}".format(
 CUDA = torch.cuda.is_available()
 
 # TODO change scoring function base on relation
-def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed):
+def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a):
+    relation = train_indices[0][1]
+    if relation in catagories['hier']:
+        score_func = transe_score
+    elif relation in catagories['simi']:
+        score_func = transe_score
+    elif relation in catagories['ctxt']:
+        score_func = transe_score
+
     len_pos_triples = int(
         train_indices.shape[0] / (int(args.valid_invalid_ratio_gat) + 1))
 
@@ -142,18 +152,22 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed):
 
     pos_triples = pos_triples.repeat(int(args.valid_invalid_ratio_gat), 1)
 
-    source_embeds = entity_embed[pos_triples[:, 0]]
-    relation_embeds = relation_embed[pos_triples[:, 1]]
-    tail_embeds = entity_embed[pos_triples[:, 2]]
+    h = entity_embed[pos_triples[:, 0]]
+    r = relation_embed[pos_triples[:, 1]]
+    t = entity_embed[pos_triples[:, 2]]
+    h_a = a[pos_triples[:, 0]]
+    h_t = a[pos_triples[:, 2]]
 
-    x = source_embeds + relation_embeds - tail_embeds
+    x = score_func(h, r, t)
     pos_norm = torch.norm(x, p=1, dim=1)
 
-    source_embeds = entity_embed[neg_triples[:, 0]]
-    relation_embeds = relation_embed[neg_triples[:, 1]]
-    tail_embeds = entity_embed[neg_triples[:, 2]]
+    h = entity_embed[neg_triples[:, 0]]
+    r = relation_embed[neg_triples[:, 1]]
+    t = entity_embed[neg_triples[:, 2]]
+    h_a = a[pos_triples[:, 0]]
+    h_t = a[pos_triples[:, 2]]
 
-    x = source_embeds + relation_embeds - tail_embeds
+    x = score_func(h, r, t)
     neg_norm = torch.norm(x, p=1, dim=1)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
@@ -234,13 +248,13 @@ def train_gat(args):
                 train_values = Variable(torch.FloatTensor(train_values))
 
             # forward pass
-            entity_embed, relation_embed = model_gat(
+            entity_embed, relation_embed, a = model_gat(
                 Corpus_, Corpus_.train_adj_matrix, train_indices, current_batch_2hop_indices)
 
             optimizer.zero_grad()
 
             loss = batch_gat_loss(
-                gat_loss_func, train_indices, entity_embed, relation_embed)
+                gat_loss_func, train_indices, entity_embed, relation_embed, a)
 
             loss.backward()
             optimizer.step()
