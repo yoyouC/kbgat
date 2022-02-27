@@ -86,11 +86,17 @@ def plot_grad_flow_low(named_parameters, parameters):
     plt.close()
 
 
-def transe_score(h, r, t):
-    return h + r - t
+def transe_score(h, r, t, h_a=None, t_a=None):
+    return (h + r - t).norm(1, dim=1)
 
-def distmult_score(h, r, t):
+def distmult_score(h, r, t, h_a=None, t_a=None):
     return - h * r * t
+
+def hier_score(h, r, t, h_a, t_a):
+    return t_a - h_a - (h - t).norm(1, dim=1)
+
+def simi_score(h, r, t, h_a, t_a):
+    return t_a - h_a + (h - t).norm(1, dim=1)
 
 class BatchCategoryDataset():
 

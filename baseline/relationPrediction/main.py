@@ -21,7 +21,7 @@ import logging
 import time
 import pickle
 from config import catagories
-from utils import transe_score, distmult_score
+from utils import transe_score, hier_score, simi_score
 
 # %%
 # %%from torchviz import make_dot, make_dot_from_trace
@@ -138,9 +138,9 @@ CUDA = torch.cuda.is_available()
 def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a):
     relation = train_indices[0][1]
     if relation in catagories['hier']:
-        score_func = transe_score
+        score_func = hier_score
     elif relation in catagories['simi']:
-        score_func = transe_score
+        score_func = simi_score
     elif relation in catagories['ctxt']:
         score_func = transe_score
 
@@ -156,23 +156,21 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     r = relation_embed[pos_triples[:, 1]]
     t = entity_embed[pos_triples[:, 2]]
     h_a = a[pos_triples[:, 0]]
-    h_t = a[pos_triples[:, 2]]
+    t_a = a[pos_triples[:, 2]]
 
-    x = score_func(h, r, t)
-    pos_norm = torch.norm(x, p=1, dim=1)
+    pos_score = score_func(h, r, t, h_a, t_a)
 
     h = entity_embed[neg_triples[:, 0]]
     r = relation_embed[neg_triples[:, 1]]
     t = entity_embed[neg_triples[:, 2]]
-    h_a = a[pos_triples[:, 0]]
-    h_t = a[pos_triples[:, 2]]
+    h_a = a[neg_triples[:, 0]]
+    t_a = a[neg_triples[:, 2]]
 
-    x = score_func(h, r, t)
-    neg_norm = torch.norm(x, p=1, dim=1)
+    neg_score = score_func(h, r, t, h_a, t_a)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
 
-    loss = gat_loss_func(pos_norm, neg_norm, y)
+    loss = gat_loss_func(pos_score, neg_score, y)
     return loss
 
 
@@ -259,7 +257,7 @@ def train_gat(args):
             loss.backward()
             optimizer.step()
 
-            epoch_loss.append(loss.data.item())
+            epoch_loss.append(loss.data.item() * Corpus_.batch_size / len(Corpus_.train_indices))
 
             end_time_iter = time.time()
 
