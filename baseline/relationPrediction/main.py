@@ -132,7 +132,7 @@ print("Initial entity dimensions {} , relation dimensions {}".format(
 
 CUDA = torch.cuda.is_available()
 
-
+# TODO change scoring function base on relation
 def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed):
     len_pos_triples = int(
         train_indices.shape[0] / (int(args.valid_invalid_ratio_gat) + 1))
@@ -219,7 +219,10 @@ def train_gat(args):
 
         for iters in range(num_iters_per_epoch):
             start_time_iter = time.time()
-            train_indices, train_values = Corpus_.get_iteration_batch(iters)
+            res = Corpus_.get_iteration_batch(iters)
+            if not res:
+                break
+            train_indices, train_values = res
 
             if CUDA:
                 train_indices = Variable(

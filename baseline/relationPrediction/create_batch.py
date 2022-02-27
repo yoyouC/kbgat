@@ -1,9 +1,11 @@
+import imp
 import torch
 import numpy as np
 from collections import defaultdict
 import time
 import queue
-import random
+from utils import BatchCategoryDataset
+from config import catagories
 
 
 class Corpus:
@@ -52,6 +54,8 @@ class Corpus:
         self.test_indices = np.array(list(self.test_triples)).astype(np.int32)
         self.test_values = np.array(
             [[1]] * len(self.test_triples)).astype(np.float32)
+        
+        self.batch_cagetory_dataset = BatchCategoryDataset(self.train_indices, catagories, self.batch_size)
 
         self.valid_triples_dict = {j: i for i, j in enumerate(
             self.train_triples + self.validation_triples + self.test_triples)}
@@ -74,8 +78,15 @@ class Corpus:
             indices = range(self.batch_size * iter_num,
                             self.batch_size * (iter_num + 1))
 
+            batch_train_indices = []
+            for _ in range(self.batch_size):
+                next_triplet = self.batch_cagetory_dataset.__next__()
+                if not next_triplet:
+                    return None
+                batch_train_indices.append(next_triplet)
+            
             self.batch_indices[:self.batch_size,
-                               :] = self.train_indices[indices, :]
+                               :] = batch_train_indices
             self.batch_values[:self.batch_size,
                               :] = self.train_values[indices, :]
 
@@ -177,53 +188,6 @@ class Corpus:
                 return self.batch_indices, self.batch_values
 
             return self.batch_indices, self.batch_values
-
-    def get_iteration_batch_nhop(self, current_batch_indices, node_neighbors, batch_size):
-
-        self.batch_indices = np.empty(
-            (batch_size * (self.invalid_valid_ratio + 1), 4)).astype(np.int32)
-        self.batch_values = np.empty(
-            (batch_size * (self.invalid_valid_ratio + 1), 1)).astype(np.float32)
-        indices = random.sample(range(len(current_batch_indices)), batch_size)
-
-        self.batch_indices[:batch_size,
-                           :] = current_batch_indices[indices, :]
-        self.batch_values[:batch_size,
-                          :] = np.ones((batch_size, 1))
-
-        last_index = batch_size
-
-        if self.invalid_valid_ratio > 0:
-            random_entities = np.random.randint(
-                0, len(self.entity2id), last_index * self.invalid_valid_ratio)
-
-            # Precopying the same valid indices from 0 to batch_size to rest
-            # of the indices
-            self.batch_indices[last_index:(last_index * (self.invalid_valid_ratio + 1)), :] = np.tile(
-                self.batch_indices[:last_index, :], (self.invalid_valid_ratio, 1))
-            self.batch_values[last_index:(last_index * (self.invalid_valid_ratio + 1)), :] = np.tile(
-                self.batch_values[:last_index, :], (self.invalid_valid_ratio, 1))
-
-            for i in range(last_index):
-                for j in range(self.invalid_valid_ratio // 2):
-                    current_index = i * (self.invalid_valid_ratio // 2) + j
-
-                    self.batch_indices[last_index + current_index,
-                                       0] = random_entities[current_index]
-                    self.batch_values[last_index + current_index, :] = [0]
-
-                for j in range(self.invalid_valid_ratio // 2):
-                    current_index = last_index * \
-                        (self.invalid_valid_ratio // 2) + \
-                        (i * (self.invalid_valid_ratio // 2) + j)
-
-                    self.batch_indices[last_index + current_index,
-                                       3] = random_entities[current_index]
-                    self.batch_values[last_index + current_index, :] = [0]
-
-            return self.batch_indices, self.batch_values
-
-        return self.batch_indices, self.batch_values
 
     def get_graph(self):
         graph = {}

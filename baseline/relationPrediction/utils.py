@@ -13,11 +13,7 @@ from preprocess import read_entity_from_id, read_relation_from_id, init_embeddin
 from create_batch import Corpus
 
 import random
-import argparse
-import os
-import logging
-import time
-import pickle
+from random import shuffle
 
 
 CUDA = torch.cuda.is_available()
@@ -28,43 +24,6 @@ def save_model(model, name, epoch, folder_name):
     torch.save(model.state_dict(),
                (folder_name + "trained_{}.pth").format(epoch))
     print("Done saving Model")
-
-
-gat_loss_func = nn.MarginRankingLoss(margin=0.5)
-
-
-def GAT_Loss(train_indices, valid_invalid_ratio):
-    len_pos_triples = train_indices.shape[0] // (int(valid_invalid_ratio) + 1)
-
-    pos_triples = train_indices[:len_pos_triples]
-    neg_triples = train_indices[len_pos_triples:]
-
-    pos_triples = pos_triples.repeat(int(valid_invalid_ratio), 1)
-
-    source_embeds = entity_embed[pos_triples[:, 0]]
-    relation_embeds = relation_embed[pos_triples[:, 1]]
-    tail_embeds = entity_embed[pos_triples[:, 2]]
-
-    x = source_embeds + relation_embeds - tail_embeds
-    pos_norm = torch.norm(x, p=2, dim=1)
-
-    source_embeds = entity_embed[neg_triples[:, 0]]
-    relation_embeds = relation_embed[neg_triples[:, 1]]
-    tail_embeds = entity_embed[neg_triples[:, 2]]
-
-    x = source_embeds + relation_embeds - tail_embeds
-    neg_norm = torch.norm(x, p=2, dim=1)
-
-    y = torch.ones(int(args.valid_invalid_ratio)
-                   * len_pos_triples).cuda()
-    loss = gat_loss_func(pos_norm, neg_norm, y)
-    return loss
-
-
-def render_model_graph(model, Corpus_, train_indices, relation_adj, averaged_entity_vectors):
-    graph = make_dot(model(Corpus_.train_adj_matrix, train_indices, relation_adj, averaged_entity_vectors),
-                     params=dict(model.named_parameters()))
-    graph.render()
 
 
 def print_grads(model):
@@ -134,3 +93,79 @@ def plot_grad_flow_low(named_parameters, parameters):
     plt.grid(True)
     plt.savefig('initial.png')
     plt.close()
+
+
+class BatchCategoryDataset():
+
+    class CategoryDataset():
+        def __init__(self, data):
+            self.data = data
+            shuffle(self.data)
+            self.index = -1
+        
+        def __next__(self):
+            self.index += 1
+            return self.data[self.index]
+        
+        def __len__(self):
+            return len(self.data) - (self.index + 1)
+
+        def reset(self):
+            self.index = -1
+
+    def __init__(self, triplets, categories, batch_size):
+        self.batch_size = batch_size
+
+        self.cate_datasets = []
+        for _, category in categories.items():
+            category_triplets = self._filter_by_category(triplets, category)
+            self.cate_datasets.append(self.CategoryDataset(category_triplets))
+        
+        self.count = 0
+        self.curr_dataset = None
+    
+    def _filter_by_category(triplets, category):
+        ret = []
+        for t in triplets:
+            _, r, _ = t
+            if r in category:
+                ret.append(t)
+        return ret
+
+        
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        if self.count % self.batch_size == 0:
+            self._sample_catagory()
+        
+        if not self.curr_dataset:
+            self.reset()
+            raise StopIteration
+        
+        self.count += 1
+        
+        h, r, t = next(self.curr_dataset)
+        return h, r, t
+
+    def _sample_catagory(self):
+        remains = []
+
+        for dataset in self.cate_datasets:
+            remains.append(len(dataset) // self.batch_size)
+        remains = np.cumsum(remains)
+
+        if remains[-1] == 0:
+            self.curr_dataset = None
+            return
+
+        randint = random.randint(1, remains[-1])
+        for i, num_remain in enumerate(remains):
+            if randint <= num_remain:
+                self.curr_dataset = self.cate_datasets[i]
+                return
+
+    def reset(self):
+        for dataset in self.cate_datasets:
+            dataset.reset()
