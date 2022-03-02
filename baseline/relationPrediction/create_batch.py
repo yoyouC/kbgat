@@ -130,6 +130,120 @@ class Corpus:
 
         return self.batch_indices, self.batch_values
 
+    def get_iteration_batch_old(self, iter_num):
+        if (iter_num + 1) * self.batch_size <= len(self.train_indices):
+            self.batch_indices = np.empty(
+                (self.batch_size * (self.invalid_valid_ratio + 1), 3)).astype(np.int32)
+            self.batch_values = np.empty(
+                (self.batch_size * (self.invalid_valid_ratio + 1), 1)).astype(np.float32)
+
+            indices = range(self.batch_size * iter_num,
+                            self.batch_size * (iter_num + 1))
+
+            self.batch_indices[:self.batch_size,
+                               :] = self.train_indices[indices, :]
+            self.batch_values[:self.batch_size,
+                              :] = self.train_values[indices, :]
+
+            last_index = self.batch_size
+
+            if self.invalid_valid_ratio > 0:
+                random_entities = np.random.randint(
+                    0, len(self.entity2id), last_index * self.invalid_valid_ratio)
+
+                # Precopying the same valid indices from 0 to batch_size to rest
+                # of the indices
+                self.batch_indices[last_index:(last_index * (self.invalid_valid_ratio + 1)), :] = np.tile(
+                    self.batch_indices[:last_index, :], (self.invalid_valid_ratio, 1))
+                self.batch_values[last_index:(last_index * (self.invalid_valid_ratio + 1)), :] = np.tile(
+                    self.batch_values[:last_index, :], (self.invalid_valid_ratio, 1))
+
+                for i in range(last_index):
+                    for j in range(self.invalid_valid_ratio // 2):
+                        current_index = i * (self.invalid_valid_ratio // 2) + j
+
+                        while (random_entities[current_index], self.batch_indices[last_index + current_index, 1],
+                               self.batch_indices[last_index + current_index, 2]) in self.valid_triples_dict.keys():
+                            random_entities[current_index] = np.random.randint(
+                                0, len(self.entity2id))
+                        self.batch_indices[last_index + current_index,
+                                           0] = random_entities[current_index]
+                        self.batch_values[last_index + current_index, :] = [-1]
+
+                    for j in range(self.invalid_valid_ratio // 2):
+                        current_index = last_index * \
+                            (self.invalid_valid_ratio // 2) + \
+                            (i * (self.invalid_valid_ratio // 2) + j)
+
+                        while (self.batch_indices[last_index + current_index, 0], self.batch_indices[last_index + current_index, 1],
+                               random_entities[current_index]) in self.valid_triples_dict.keys():
+                            random_entities[current_index] = np.random.randint(
+                                0, len(self.entity2id))
+                        self.batch_indices[last_index + current_index,
+                                           2] = random_entities[current_index]
+                        self.batch_values[last_index + current_index, :] = [-1]
+
+                return self.batch_indices, self.batch_values
+
+            return self.batch_indices, self.batch_values
+
+        else:
+            last_iter_size = len(self.train_indices) - \
+                self.batch_size * iter_num
+            self.batch_indices = np.empty(
+                (last_iter_size * (self.invalid_valid_ratio + 1), 3)).astype(np.int32)
+            self.batch_values = np.empty(
+                (last_iter_size * (self.invalid_valid_ratio + 1), 1)).astype(np.float32)
+
+            indices = range(self.batch_size * iter_num,
+                            len(self.train_indices))
+            self.batch_indices[:last_iter_size,
+                               :] = self.train_indices[indices, :]
+            self.batch_values[:last_iter_size,
+                              :] = self.train_values[indices, :]
+
+            last_index = last_iter_size
+
+            if self.invalid_valid_ratio > 0:
+                random_entities = np.random.randint(
+                    0, len(self.entity2id), last_index * self.invalid_valid_ratio)
+
+                # Precopying the same valid indices from 0 to batch_size to rest
+                # of the indices
+                self.batch_indices[last_index:(last_index * (self.invalid_valid_ratio + 1)), :] = np.tile(
+                    self.batch_indices[:last_index, :], (self.invalid_valid_ratio, 1))
+                self.batch_values[last_index:(last_index * (self.invalid_valid_ratio + 1)), :] = np.tile(
+                    self.batch_values[:last_index, :], (self.invalid_valid_ratio, 1))
+
+                for i in range(last_index):
+                    for j in range(self.invalid_valid_ratio // 2):
+                        current_index = i * (self.invalid_valid_ratio // 2) + j
+
+                        while (random_entities[current_index], self.batch_indices[last_index + current_index, 1],
+                               self.batch_indices[last_index + current_index, 2]) in self.valid_triples_dict.keys():
+                            random_entities[current_index] = np.random.randint(
+                                0, len(self.entity2id))
+                        self.batch_indices[last_index + current_index,
+                                           0] = random_entities[current_index]
+                        self.batch_values[last_index + current_index, :] = [-1]
+
+                    for j in range(self.invalid_valid_ratio // 2):
+                        current_index = last_index * \
+                            (self.invalid_valid_ratio // 2) + \
+                            (i * (self.invalid_valid_ratio // 2) + j)
+
+                        while (self.batch_indices[last_index + current_index, 0], self.batch_indices[last_index + current_index, 1],
+                               random_entities[current_index]) in self.valid_triples_dict.keys():
+                            random_entities[current_index] = np.random.randint(
+                                0, len(self.entity2id))
+                        self.batch_indices[last_index + current_index,
+                                           2] = random_entities[current_index]
+                        self.batch_values[last_index + current_index, :] = [-1]
+
+                return self.batch_indices, self.batch_values
+
+            return self.batch_indices, self.batch_values
+
     def get_graph(self):
         graph = {}
         all_tiples = torch.cat([self.train_adj_matrix[0].transpose(

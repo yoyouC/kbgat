@@ -292,7 +292,7 @@ def train_conv(args):
 
     model_gat.load_state_dict(torch.load(
         '{}gat/trained_{}.pth'.format(args.output_folder, args.epochs_gat - 1)))
-    model_conv.final_entity_embeddings = model_gat.final_entity_embeddings
+    model_conv.final_entity_embeddings = torch.cat((model_gat.final_entity_embeddings,model_gat.a), -1)
     model_conv.final_relation_embeddings = model_gat.final_relation_embeddings
 
     Corpus_.batch_size = args.batch_size_conv
@@ -328,7 +328,7 @@ def train_conv(args):
 
         for iters in range(num_iters_per_epoch):
             start_time_iter = time.time()
-            train_indices, train_values = Corpus_.get_iteration_batch(iters)
+            train_indices, train_values = Corpus_.get_iteration_batch_old(iters)
 
             if CUDA:
                 train_indices = Variable(
