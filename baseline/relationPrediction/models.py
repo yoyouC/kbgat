@@ -68,7 +68,7 @@ class SpGAT(nn.Module):
 
 class SpKBGATModified(nn.Module):
     def __init__(self, initial_entity_emb, initial_relation_emb, entity_out_dim, relation_out_dim,
-                 drop_GAT, alpha, nheads_GAT):
+                 drop_GAT, alpha, nheads_GAT, bias):
         '''Sparse version of KBGAT
         entity_in_dim -> Entity Input Embedding dimensions
         entity_out_dim  -> Entity Output Embedding dimensions, passed as a list
@@ -110,7 +110,7 @@ class SpKBGATModified(nn.Module):
             size=(self.entity_in_dim, self.entity_out_dim_1 * self.nheads_GAT_1)))
         nn.init.xavier_uniform_(self.W_entities.data, gain=1.414)
 
-        self.a = nn.Parameter(torch.zeros(self.num_nodes, dtype=torch.float64), requires_grad=True)
+        self.a = nn.Parameter(bias)
 
     def forward(self, Corpus_, adj, batch_inputs, train_indices_nhop):
         # getting edge list
