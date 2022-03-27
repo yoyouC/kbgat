@@ -131,7 +131,6 @@ relation_embeddings_copied = deepcopy(relation_embeddings)
 print("Initial entity dimensions {} , relation dimensions {}".format(
     entity_embeddings.size(), relation_embeddings.size()))
 
-bias = torch.load(os.path.join(args.data, 'bias.pt')).squeeze()
 # %%
 
 CUDA = torch.cuda.is_available()
@@ -186,7 +185,7 @@ def train_gat(args):
     print(
         "\nModel type -> GAT layer with {} heads used , Initital Embeddings training".format(args.nheads_GAT[0]))
     model_gat = SpKBGATModified(entity_embeddings, relation_embeddings, args.entity_out_dim, args.entity_out_dim,
-                                args.drop_GAT, args.alpha, args.nheads_GAT, bias)
+                                args.drop_GAT, args.alpha, args.nheads_GAT)
 
     if CUDA:
         model_gat.cuda()
@@ -248,13 +247,13 @@ def train_gat(args):
                 train_values = Variable(torch.FloatTensor(train_values))
 
             # forward pass
-            entity_embed, relation_embed, a = model_gat(
+            entity_embed, relation_embed = model_gat(
                 Corpus_, Corpus_.train_adj_matrix, train_indices, current_batch_2hop_indices)
 
             optimizer.zero_grad()
 
             loss = batch_gat_loss(
-                gat_loss_func, train_indices, entity_embed, relation_embed, a)
+                gat_loss_func, train_indices, entity_embed[:, :200], relation_embed, entity_embed[:, -1])
 
             loss.backward()
             optimizer.step()
