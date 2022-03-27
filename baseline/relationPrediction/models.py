@@ -130,8 +130,8 @@ class SpKBGATModified(nn.Module):
 
         start = time.time()
 
-        self.entity_embeddings.data = F.normalize(
-            self.entity_embeddings.data, p=2, dim=1).detach()
+        # self.entity_embeddings.data = F.normalize(
+        #     self.entity_embeddings.data, p=2, dim=1).detach()
 
         # self.relation_embeddings.data = F.normalize(
         #     self.relation_embeddings.data, p=2, dim=1)
@@ -148,7 +148,7 @@ class SpKBGATModified(nn.Module):
         out_entity_1 = entities_upgraded + \
             mask.unsqueeze(-1).expand_as(out_entity_1) * out_entity_1
 
-        out_entity_1 = F.normalize(out_entity_1, p=2, dim=1)
+        # out_entity_1 = F.normalize(out_entity_1, p=2, dim=1)
 
         self.final_entity_embeddings.data = out_entity_1.data
         self.final_relation_embeddings.data = out_relation_1.data
