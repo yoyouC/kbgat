@@ -98,6 +98,9 @@ def hier_score(h, r, t, h_a, t_a):
 def simi_score(h, r, t, h_a, t_a):
     return t_a - h_a + (h - t).norm(1, dim=1)
 
+def regularization(h, r, t, regul_rate=1e-5):
+    return ((torch.mean(h ** 2) + torch.mean(t ** 2) + torch.mean(r ** 2)) / 3) * regul_rate
+
 class BatchCategoryDataset():
 
     class CategoryDataset():
