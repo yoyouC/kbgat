@@ -295,7 +295,8 @@ def train_conv(args):
         '{}gat/trained_{}.pth'.format(args.output_folder, args.epochs_gat - 1)))
     model_conv.final_entity_embeddings = model_gat.final_entity_embeddings
     model_conv.final_relation_embeddings = model_gat.final_relation_embeddings
-
+    torch.save(model_conv.final_entity_embeddings.data, 'entity.pt')
+    torch.save(model_conv.final_relation_embeddings.data, 'relation.pt')
     Corpus_.batch_size = args.batch_size_conv
     Corpus_.invalid_valid_ratio = int(args.valid_invalid_ratio_conv)
 
