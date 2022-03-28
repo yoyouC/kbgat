@@ -21,6 +21,8 @@ import logging
 import time
 import pickle
 
+from simlex import Mapper, SimLex999
+
 # %%
 # %%from torchviz import make_dot, make_dot_from_trace
 
@@ -254,6 +256,10 @@ def train_gat(args):
             epoch, sum(epoch_loss) / len(epoch_loss), time.time() - start_time))
         epoch_losses.append(sum(epoch_loss) / len(epoch_loss))
 
+        if epoch % 50 == 0:
+            mapper = Mapper(Corpus.entity2id, model_gat.final_entity_embeddings)
+            simlex = SimLex999(args.data+'SimLex-999.txt')
+            print("SimLex: ", simlex.eval(mapper))
 
     save_model(model_gat, args.data, args.epochs_gat - 1,
             args.output_folder + "gat/")
