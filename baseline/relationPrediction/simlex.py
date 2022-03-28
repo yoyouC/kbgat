@@ -8,7 +8,7 @@ from scipy.stats import pearsonr
 
 
 class SimLex999():
-    def __init__(self, data_path='datasets/SimLex-999.txt'):
+    def __init__(self, data_path='../../data/SimLex-999.txt'):
         self.data = pd.read_csv(data_path, sep='\t', header=0)
     
     def eval(self, mapper):
@@ -86,9 +86,9 @@ class Mapper():
         return key in self.w2id
     
     def sim(self, w1, w2):
-        if w1 not in self.word2embedding or w2 not in self.word2embedding:
+        if w1 not in self or w2 not in self:
             return None
 
         cossim = nn.CosineSimilarity(dim=0)
-        return cossim(w1, w2)
+        return cossim(self[w1], self[w2])
     
