@@ -11,7 +11,7 @@ from copy import deepcopy
 
 from preprocess import read_entity_from_id, read_relation_from_id, init_embeddings, build_data
 from create_batch import Corpus
-from utils import save_model
+from utils import save_model, regularization
 
 import random
 import argparse
@@ -84,6 +84,8 @@ def parse_args():
 
     args.add_argument("-p_norm", "--p_norm", type=int,
                       default=2, help="normalizatio for loss")
+    args.add_argument("-v_regul", "--v_regul", type=float,
+                      default=1.0, help="normalizatio for embeddings")
     
     args = args.parse_args()
     return args
@@ -167,6 +169,7 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     t_a = a[pos_triples[:, 2]]
 
     pos_score = score_func(h, r, t, h_a, t_a, args.p_norm)
+    regul = regularization(h, r, t, regul_rate=args.v_regul)
 
     h = entity_embed[neg_triples[:, 0]]
     r = relation_embed[neg_triples[:, 1]]
@@ -175,10 +178,11 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     t_a = a[neg_triples[:, 2]]
 
     neg_score = score_func(h, r, t, h_a, t_a, args.p_norm)
+    regul += regularization(h, r, t, regul_rate=args.v_regul)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
 
-    loss = gat_loss_func(pos_score, neg_score, y)
+    loss = gat_loss_func(pos_score, neg_score, y) + regul
     return loss
 
 
