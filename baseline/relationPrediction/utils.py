@@ -134,3 +134,7 @@ def plot_grad_flow_low(named_parameters, parameters):
     plt.grid(True)
     plt.savefig('initial.png')
     plt.close()
+
+
+def regularization(h, r, t, regul_rate):
+    return ((torch.mean(h ** 2) + torch.mean(t ** 2) + torch.mean(r ** 2)) / 3) * regul_rate
