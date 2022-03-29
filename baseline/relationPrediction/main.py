@@ -23,6 +23,8 @@ import pickle
 from config import catagories
 from utils import transe_score, hier_score, simi_score
 
+from simlex import Mapper, SimLex999
+
 # %%
 # %%from torchviz import make_dot, make_dot_from_trace
 
@@ -78,7 +80,11 @@ def parse_args():
                       help="Number of output channels in conv layer")
     args.add_argument("-drop_conv", "--drop_conv", type=float,
                       default=0.0, help="Dropout probability for convolution layer")
+    
 
+    args.add_argument("-p_norm", "--p_norm", type=int,
+                      default=2, help="normalizatio for loss")
+    
     args = args.parse_args()
     return args
 
@@ -271,6 +277,10 @@ def train_gat(args):
             epoch, sum(epoch_loss) / len(epoch_loss), time.time() - start_time))
         epoch_losses.append(sum(epoch_loss) / len(epoch_loss))
 
+        if epoch % 50 == 0:
+            mapper = Mapper(Corpus_.entity2id, model_gat.final_entity_embeddings)
+            simlex = SimLex999()
+            print("SimLex: ", simlex.eval(mapper))
 
     save_model(model_gat, args.data, args.epochs_gat - 1,
             args.output_folder + "gat/")
@@ -296,7 +306,8 @@ def train_conv(args):
         '{}gat/trained_{}.pth'.format(args.output_folder, args.epochs_gat - 1)))
     model_conv.final_entity_embeddings = model_gat.final_entity_embeddings
     model_conv.final_relation_embeddings = model_gat.final_relation_embeddings
-
+    torch.save(model_conv.final_entity_embeddings.data, 'entity.pt')
+    torch.save(model_conv.final_relation_embeddings.data, 'relation.pt')
     Corpus_.batch_size = args.batch_size_conv
     Corpus_.invalid_valid_ratio = int(args.valid_invalid_ratio_conv)
 

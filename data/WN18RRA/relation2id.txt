@@ -1,0 +1,12 @@
+has_synset	0
+_derivationally_related_form	1
+_hypernym	2
+_member_meronym	3
+_has_part	4
+_synset_domain_topic_of	5
+_instance_hypernym	6
+_also_see	7
+_verb_group	8
+_member_of_domain_region	9
+_member_of_domain_usage	10
+_similar_to	11
