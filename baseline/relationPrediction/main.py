@@ -78,7 +78,11 @@ def parse_args():
                       help="Number of output channels in conv layer")
     args.add_argument("-drop_conv", "--drop_conv", type=float,
                       default=0.0, help="Dropout probability for convolution layer")
+    
 
+    args.add_argument("-p_norm", "--p_norm", type=int,
+                      default=2, help="normalizatio for loss")
+    
     args = args.parse_args()
     return args
 
@@ -149,14 +153,14 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed):
     tail_embeds = entity_embed[pos_triples[:, 2]]
 
     x = source_embeds + relation_embeds - tail_embeds
-    pos_norm = torch.norm(x, p=1, dim=1)
+    pos_norm = torch.norm(x, p=args.p_norm, dim=1)
 
     source_embeds = entity_embed[neg_triples[:, 0]]
     relation_embeds = relation_embed[neg_triples[:, 1]]
     tail_embeds = entity_embed[neg_triples[:, 2]]
 
     x = source_embeds + relation_embeds - tail_embeds
-    neg_norm = torch.norm(x, p=1, dim=1)
+    neg_norm = torch.norm(x, p=args.p_norm, dim=1)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
 
