@@ -166,7 +166,7 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     h_a = a[pos_triples[:, 0]]
     t_a = a[pos_triples[:, 2]]
 
-    pos_score = score_func(h, r, t, h_a, t_a)
+    pos_score = score_func(h, r, t, h_a, t_a, args.p_norm)
 
     h = entity_embed[neg_triples[:, 0]]
     r = relation_embed[neg_triples[:, 1]]
@@ -174,7 +174,7 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     h_a = a[neg_triples[:, 0]]
     t_a = a[neg_triples[:, 2]]
 
-    neg_score = score_func(h, r, t, h_a, t_a)
+    neg_score = score_func(h, r, t, h_a, t_a, args.p_norm)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
 
