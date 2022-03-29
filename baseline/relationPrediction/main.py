@@ -11,7 +11,7 @@ from copy import deepcopy
 
 from preprocess import read_entity_from_id, read_relation_from_id, init_embeddings, build_data
 from create_batch import Corpus
-from utils import save_model
+from utils import save_model, regularization
 
 import random
 import argparse
@@ -78,7 +78,13 @@ def parse_args():
                       help="Number of output channels in conv layer")
     args.add_argument("-drop_conv", "--drop_conv", type=float,
                       default=0.0, help="Dropout probability for convolution layer")
+    
 
+    args.add_argument("-p_norm", "--p_norm", type=int,
+                      default=2, help="normalizatio for loss")
+    args.add_argument("-v_regul", "--v_regul", type=float,
+                      default=1.0, help="normalizatio for embeddings")
+    
     args = args.parse_args()
     return args
 
@@ -149,18 +155,20 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed):
     tail_embeds = entity_embed[pos_triples[:, 2]]
 
     x = source_embeds + relation_embeds - tail_embeds
-    pos_norm = torch.norm(x, p=1, dim=1)
+    pos_norm = torch.norm(x, p=args.p_norm, dim=1)
+    regul = regularization(source_embeds, relation_embeds, tail_embeds, regul_rate=args.v_regul)
 
     source_embeds = entity_embed[neg_triples[:, 0]]
     relation_embeds = relation_embed[neg_triples[:, 1]]
     tail_embeds = entity_embed[neg_triples[:, 2]]
+    regul += regularization(source_embeds, relation_embeds, tail_embeds, regul_rate=args.v_regul)
 
     x = source_embeds + relation_embeds - tail_embeds
-    neg_norm = torch.norm(x, p=1, dim=1)
+    neg_norm = torch.norm(x, p=args.p_norm, dim=1)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
 
-    loss = gat_loss_func(pos_norm, neg_norm, y)
+    loss = gat_loss_func(pos_norm, neg_norm, y) + regul
     return loss
 
 
