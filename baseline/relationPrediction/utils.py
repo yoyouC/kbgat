@@ -93,7 +93,9 @@ def distmult_score(h, r, t, h_a=None, t_a=None, p_norm=1):
     return - h * r * t
 
 def hier_score(h, r, t, h_a, t_a, p_norm=1):
-    return t_a - h_a - (h - t).norm(p_norm, dim=1)
+    score = t_a - h_a - (h - t).norm(p_norm, dim=1)
+    score[score > 0] = 0
+    return -score
 
 def simi_score(h, r, t, h_a, t_a, p_norm=1):
     return t_a - h_a + (h - t).norm(p_norm, dim=1)
