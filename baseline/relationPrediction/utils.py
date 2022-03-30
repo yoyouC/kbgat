@@ -86,17 +86,22 @@ def plot_grad_flow_low(named_parameters, parameters):
     plt.close()
 
 
-def transe_score(h, r, t, h_a=None, t_a=None):
-    return (h + r - t).norm(1, dim=1)
+def transe_score(h, r, t, h_a=None, t_a=None, p_norm=1):
+    return (h + r - t).norm(p_norm, dim=1)
 
-def distmult_score(h, r, t, h_a=None, t_a=None):
+def distmult_score(h, r, t, h_a=None, t_a=None, p_norm=1):
     return - h * r * t
 
-def hier_score(h, r, t, h_a, t_a):
-    return t_a - h_a - (h - t).norm(1, dim=1)
+def hier_score(h, r, t, h_a, t_a, p_norm=1):
+    score = t_a - h_a - (h - t).norm(p_norm, dim=1)
+    score[score > 0] = 0
+    return -score
 
-def simi_score(h, r, t, h_a, t_a):
-    return t_a - h_a + (h - t).norm(1, dim=1)
+def simi_score(h, r, t, h_a, t_a, p_norm=1):
+    return t_a - h_a + (h - t).norm(p_norm, dim=1)
+
+def regularization(h, r, t, regul_rate):
+    return ((torch.mean(h ** 2) + torch.mean(t ** 2) + torch.mean(r ** 2)) / 3) * regul_rate
 
 def regularization(h, r, t, regul_rate=1e-5):
     return ((torch.mean(h ** 2) + torch.mean(t ** 2) + torch.mean(r ** 2)) / 3) * regul_rate

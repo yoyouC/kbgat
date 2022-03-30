@@ -11,7 +11,7 @@ from copy import deepcopy
 
 from preprocess import read_entity_from_id, read_relation_from_id, init_embeddings, build_data
 from create_batch import Corpus
-from utils import save_model
+from utils import save_model, regularization
 
 import random
 import argparse
@@ -22,6 +22,8 @@ import time
 import pickle
 from config import catagories
 from utils import transe_score, hier_score, simi_score
+
+from simlex import Mapper, SimLex999
 
 # %%
 # %%from torchviz import make_dot, make_dot_from_trace
@@ -78,7 +80,13 @@ def parse_args():
                       help="Number of output channels in conv layer")
     args.add_argument("-drop_conv", "--drop_conv", type=float,
                       default=0.0, help="Dropout probability for convolution layer")
+    
 
+    args.add_argument("-p_norm", "--p_norm", type=int,
+                      default=2, help="normalizatio for loss")
+    args.add_argument("-v_regul", "--v_regul", type=float,
+                      default=1.0, help="normalizatio for embeddings")
+    
     args = args.parse_args()
     return args
 
@@ -159,7 +167,8 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     h_a = a[pos_triples[:, 0]]
     t_a = a[pos_triples[:, 2]]
 
-    pos_score = score_func(h, r, t, h_a, t_a)
+    pos_score = score_func(h, r, t, h_a, t_a, args.p_norm)
+    regul = regularization(h, r, t, regul_rate=args.v_regul)
 
     h = entity_embed[neg_triples[:, 0]]
     r = relation_embed[neg_triples[:, 1]]
@@ -167,11 +176,12 @@ def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed, a
     h_a = a[neg_triples[:, 0]]
     t_a = a[neg_triples[:, 2]]
 
-    neg_score = score_func(h, r, t, h_a, t_a)
+    neg_score = score_func(h, r, t, h_a, t_a, args.p_norm)
+    regul += regularization(h, r, t, regul_rate=args.v_regul)
 
     y = -torch.ones(int(args.valid_invalid_ratio_gat) * len_pos_triples).cuda()
 
-    loss = gat_loss_func(pos_score, neg_score, y)
+    loss = gat_loss_func(pos_score, neg_score, y) + regul
     return loss
 
 
@@ -270,6 +280,10 @@ def train_gat(args):
             epoch, sum(epoch_loss) / len(epoch_loss), time.time() - start_time))
         epoch_losses.append(sum(epoch_loss) / len(epoch_loss))
 
+        if epoch % 50 == 0:
+            mapper = Mapper(Corpus_.entity2id, model_gat.final_entity_embeddings)
+            simlex = SimLex999()
+            print("SimLex: ", simlex.eval(mapper))
 
     save_model(model_gat, args.data, args.epochs_gat - 1,
             args.output_folder + "gat/")
