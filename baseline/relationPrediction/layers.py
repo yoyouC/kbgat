@@ -92,8 +92,10 @@ class SpGraphAttentionLayer(nn.Module):
         self.a = nn.Parameter(torch.zeros(
             size=(out_features, 2 * in_features + nrela_dim)))
         nn.init.xavier_normal_(self.a.data, gain=1.414)
-        self.a_2 = nn.Parameter(torch.zeros(size=(1, out_features)))
+        self.a_2 = nn.Parameter(torch.zeros(size=(out_features, out_features)))
         nn.init.xavier_normal_(self.a_2.data, gain=1.414)
+        self.a_3 = nn.Parameter(torch.zeros(size=(1, out_features)))
+        nn.init.xavier_normal_(self.a_3.data, gain=1.414)
 
         self.dropout = nn.Dropout(dropout)
         self.leakyrelu = nn.LeakyReLU(self.alpha)
@@ -115,7 +117,7 @@ class SpGraphAttentionLayer(nn.Module):
         # edge_m: D * E
 
         # to be checked later
-        powers = -self.leakyrelu(self.a_2.mm(edge_m).squeeze())
+        powers = self.a_3.mm(self.leakyrelu(self.a_2.mm(edge_m))).squeeze()
         edge_e = torch.exp(powers).unsqueeze(1)
         assert not torch.isnan(edge_e).any()
         # edge_e: E
