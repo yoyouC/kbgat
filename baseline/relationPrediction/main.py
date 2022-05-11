@@ -81,9 +81,9 @@ def parse_args():
     
 
     args.add_argument("-p_norm", "--p_norm", type=int,
-                      default=2, help="normalizatio for loss")
+                      default=1, help="normalizatio for loss")
     args.add_argument("-v_regul", "--v_regul", type=float,
-                      default=1.0, help="normalizatio for embeddings")
+                      default=0.0, help="normalizatio for embeddings")
     
     args = args.parse_args()
     return args
